@@ -29,7 +29,7 @@ def get_last_timestamp_from_logfile(logfile):
         logging.info('logfile does not exist: ' + logfile)
         return 'logfile not available'
 
-    with open(logfile, 'r') as file:
+    with open(logfile, 'r', encoding='utf-8') as file:
         lines = file.readlines()
         last_line = lines[-1]
         first_line = lines[0]
@@ -46,7 +46,7 @@ def get_potions_prepared_from_logfile(logfile):
     potions_completed_successfully = 0
     potions_failed = 0
     potions_error = 0
-    with open(logfile, 'r') as file:
+    with open(logfile, 'r', encoding='utf-8') as file:
         lines = file.readlines()
         for line in lines:
             if ' Recipe ' in line:
@@ -110,7 +110,7 @@ class ResultInformation:
 
 def create_information(input_filename, logfile):
     try:
-        with open(input_filename, 'r') as file:
+        with open(input_filename, 'r', encoding='utf-8') as file:
             data = json.load(file)
 
             loginTime = str(data['loginTime'])
@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
         json_result = create_information(json_file, log_file)
         if json_result != None:
-                with open(output_filename, "w") as outfile:
+                with open(output_filename, "w", encoding="utf-8") as outfile:
                     logging.info('write information file ' + output_filename)
                     outfile.write(json_result)
                     # delete data file and log file
