@@ -108,6 +108,36 @@ class ResultInformation:
         logouttime_calculated = calculate_logouttime(loginTime, self.playedTimeSystemTimestamp)
         self.calculatedLogoutTimeBasedOnDurationAndLoginTime = logouttime_calculated.strftime("%Y-%m-%d %H:%M:%S")
 
+        ### New part based on timestamps in frame info 
+        
+        # Frame-based login/logout timestamps (systemTimestamp)
+        self.loginTimeSystemTimestamp = minFrameTimeInfo.systemTimestamp
+        self.logoutTimeSystemTimestamp = maxFrameTimeInfo.systemTimestamp
+
+        # Duration from frame timestamps
+        self.durationSystemTimestamp = (self.logoutTimeSystemTimestamp - self.loginTimeSystemTimestamp)
+
+        # Corrected login time based on logoutTime + duration
+        if self.logoutTime != "":
+            logout_dt = filetime_to_datetime(self.logoutTime)
+            corrected_login_dt = logout_dt - timedelta(seconds=self.durationSystemTimestamp)
+            self.correctedLoginTimeBasedOnFirstFrameTimestamp = corrected_login_dt.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            self.correctedLoginTimeBasedOnFirstFrameTimestamp = ""
+
+        # Convert systemTimestamp into real datetime (estimate)
+        if self.logoutTime != "":
+            # Anchor last frame at logoutTime
+            last_frame_dt = filetime_to_datetime(self.logoutTime)
+            first_frame_dt = last_frame_dt - timedelta(seconds=self.durationSystemTimestamp)
+            self.firstFrameSystemDateTime = first_frame_dt.strftime("%Y-%m-%d %H:%M:%S")
+            self.lastFrameSystemDateTime = last_frame_dt.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            # We don't trust loginTime enough to anchor absolute time → leave empty
+            self.firstFrameSystemDateTime = ""
+            self.lastFrameSystemDateTime = ""
+
+
 def create_information(input_filename, logfile):
     try:
         with open(input_filename, 'r', encoding='utf-8') as file:
