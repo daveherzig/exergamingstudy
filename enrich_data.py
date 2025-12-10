@@ -4,6 +4,22 @@ import os, os.path
 import sys
 import logging
 from zipfile import ZipFile
+import hashlib8
+
+# new -> make script version
+SCRIPT_VERSION = "1_0_0_2025-12-10"
+
+# new -> compute MD5 hash of of enrich_data.py
+def compute_script_md5():                                 
+    script_path = os.path.abspath(__file__)
+    h = hashlib.md5()
+    with open(script_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+SCRIPT_VERSION_MD5 = compute_script_md5() 
+
 
 def filetime_to_datetime(filetime_ticks):
     # 1 tick = 100 nanoseconds, and we need to convert to seconds.
@@ -14,6 +30,7 @@ def filetime_to_datetime(filetime_ticks):
     result = filetime_epoch + timedelta(seconds=seconds)
     return result
 
+
 def calculate_logouttime(logintime, playedtime):
     seconds = logintime / 10000000  # Convert ticks to seconds
     # Windows FileTime epoch: January 1, 1601
@@ -22,6 +39,7 @@ def calculate_logouttime(logintime, playedtime):
     # Add the timedelta (in seconds) to the FileTime epoch
     result = filetime_epoch + timedelta(seconds=seconds)
     return result
+
 
 def get_last_timestamp_from_logfile(logfile):
     logging.debug('retrieve timestamp information from logfile')
@@ -35,6 +53,7 @@ def get_last_timestamp_from_logfile(logfile):
         first_line = lines[0]
     
     return last_line.split(',')[0].split('(')[1], first_line.split(',')[0].split('(')[1]
+
 
 def get_potions_prepared_from_logfile(logfile):
     logging.debug('retrieve potion information from logfile...')
@@ -66,6 +85,7 @@ def get_potions_prepared_from_logfile(logfile):
 
     return potions_started, potions_completed_successfully, potions_failed, potions_error
 
+
 class TimeInformation:
     def __init__(self, timeZoneInformation, kinectTimestamp, systemTimestamp, unityTimestamp):
         self.timeZoneInformation = timeZoneInformation
@@ -73,8 +93,11 @@ class TimeInformation:
         self.systemTimestamp = systemTimestamp
         self.unityTimestamp = unityTimestamp
 
+
 class ResultInformation:
-    def __init__(self, loginTime, logoutTime, minFrameTimeInfo, maxFrameTimeInfo, lastTimestampInLogFile, firstTimestampInLogFile, p_started, p_completed, p_failed, p_error, potionsPrepared):
+    def __init__(self, loginTime, logoutTime, minFrameTimeInfo, maxFrameTimeInfo,
+                 lastTimestampInLogFile, firstTimestampInLogFile,
+                 p_started, p_completed, p_failed, p_error, potionsPrepared):
         
         self.potions_prepared = potionsPrepared
         self.p_started_log = p_started
@@ -107,8 +130,6 @@ class ResultInformation:
 
         logouttime_calculated = calculate_logouttime(loginTime, self.playedTimeSystemTimestamp)
         self.calculatedLogoutTimeBasedOnDurationAndLoginTime = logouttime_calculated.strftime("%Y-%m-%d %H:%M:%S")
-
-        ### New part based on timestamps in frame info 
         
         # Frame-based login/logout timestamps (systemTimestamp)
         self.loginTimeSystemTimestamp = minFrameTimeInfo.systemTimestamp
@@ -136,6 +157,10 @@ class ResultInformation:
             # We don't trust loginTime enough to anchor absolute time → leave empty
             self.firstFrameSystemDateTime = ""
             self.lastFrameSystemDateTime = ""
+
+        # new part, with script metadata for traceability
+        self.scriptVersion = SCRIPT_VERSION
+        self.scriptVersionMd5 = SCRIPT_VERSION_MD5
 
 
 def create_information(input_filename, logfile):
@@ -183,7 +208,9 @@ def create_information(input_filename, logfile):
             lastTimeStampInLogFile, firstTimeStampInLogFile = get_last_timestamp_from_logfile(logfile)
             p_started, p_completed, p_failed, p_error = get_potions_prepared_from_logfile(logfile)
 
-            result = ResultInformation(loginTime, logoutTime, minFrameTimeInfo, maxFrameTimeInfo, lastTimeStampInLogFile, firstTimeStampInLogFile, p_started, p_completed, p_failed, p_error, potionsPrepared)
+            result = ResultInformation(loginTime, logoutTime, minFrameTimeInfo, maxFrameTimeInfo,
+                                       lastTimeStampInLogFile, firstTimeStampInLogFile,
+                                       p_started, p_completed, p_failed, p_error, potionsPrepared)
             result_data = json.dumps(result.__dict__)
             return result_data
 
@@ -192,8 +219,13 @@ def create_information(input_filename, logfile):
         logging.info(error)
         return None 
 
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+
+    # new aprt- log script version + md5 at startup
+    logging.info(f'script version: {SCRIPT_VERSION}')
+    logging.info(f'script md5: {SCRIPT_VERSION_MD5}')
 
     if len(sys.argv) < 2:
         sys.exit('Usage: python APPNAME DATA_FOLDER')
@@ -242,9 +274,9 @@ if __name__ == '__main__':
 
         json_result = create_information(json_file, log_file)
         if json_result != None:
-                with open(output_filename, "w", encoding="utf-8") as outfile:
-                    logging.info('write information file ' + output_filename)
-                    outfile.write(json_result)
-                    # delete data file and log file
-                    os.remove(json_file)
-                    os.remove(log_file)
+            with open(output_filename, "w", encoding="utf-8") as outfile:
+                logging.info('write information file ' + output_filename)
+                outfile.write(json_result)
+                # delete data file and log file
+                os.remove(json_file)
+                os.remove(log_file)
