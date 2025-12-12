@@ -4,12 +4,12 @@ import os, os.path
 import sys
 import logging
 from zipfile import ZipFile
-import hashlib8
+import hashlib
 
-# new -> make script version
+# make script version
 SCRIPT_VERSION = "1_0_0_2025-12-10"
 
-# new -> compute MD5 hash of of enrich_data.py
+# compute MD5 hash of of enrich_data.py
 def compute_script_md5():                                 
     script_path = os.path.abspath(__file__)
     h = hashlib.md5()
@@ -170,7 +170,7 @@ def create_information(input_filename, logfile):
 
             loginTime = str(data['loginTime'])
             logoutTime = str(data['logoutTime'])
-            potionsPrepared = str(data['potionsPrepared'])
+            potionsPrepared = int(data['potionsPrepared'])
 
             if loginTime != '':
                 loginTime = int(loginTime)
@@ -250,7 +250,8 @@ if __name__ == '__main__':
         # check if the calculation is already completed for that zip file
         full_zip_file = path + '/' + zip_file
         file_key = full_zip_file[:-4]
-        output_filename = file_key + '_info_v1.json'
+        output_filename = file_key + "_info_" + SCRIPT_VERSION + ".json"                               #new: output_filename is adjusted to include the script version
+        
         if os.path.isfile(output_filename):
             logging.info('calculated information for ' + full_zip_file + ' already available')
             continue
